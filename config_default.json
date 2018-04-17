@@ -11,7 +11,7 @@
     "rangeTerm" : null,
     "rangeTh" : null,
     "waitTerm" : 0,
-    "waitTh" : 10000,
+    "waitTh" : 100,
     "candleTerm" : "5T",
     "cost" : 0,
     "fileName" : "chart.csv",
