@@ -1,10 +1,9 @@
 {
-    "product_code" : "FX_BTC_JPY",
-    "key" : "bitflyer_API_key",
-    "secret" : "bitflyer_API_secret",
+    "product_code" : "BTC/USD",
+    "key" : "",
+    "secret" : "",
     "line_notify_token" : "token",
-    "healthCheck" : true,
-    "lotSize" : 0.01,
+    "healthCheck" : false,
     "entryTerm" : 5,
     "closeTerm" : 5,
     "rangePercent" : 1.6,
@@ -18,7 +17,7 @@
     "fileName" : "chart.csv",
     "showFigure" : true,
     "sendFigure" : false,
-    "showTradeDetail" : true,
     "core" : null,
-    "hyperopt" : 1000
+    "showTradeDetail" : true,
+	"hyperopt" : 1000
 }

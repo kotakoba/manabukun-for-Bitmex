@@ -1,4 +1,9 @@
-# Channel Breakout Bot for bitflyer-FX
+# Channel Breakout Bot for bitmex
+
+<font size="4">
+使用規約は本家様に準じてください<br>
+https://github.com/Connie-Wild/ChannelBreakoutBot
+</font>
 
 Special Thanks for Snufkin https://sshuhei.com/
 
@@ -16,20 +21,20 @@ Commercial use is strictly prohibited.
 2) ターミナルからgitリポジトリをクローン
 
 ```bash
-git clone https://github.com/Connie-Wild/ChannelBreakoutBot.git
+git clone https://github.com/kotakoba/manabukun-for-Bitmex.git
 ```
 
 3) フォルダに移動し、必要なパッケージをインストール<br>
 
 for Windows 10 with Python 3.6.5
 ```bash
-cd ChannelBreakoutBot
+cd manabukun-for-Bitmex
 pip install -U pip setuptools
 pip install pybitflyer requests pandas pubnub tornado matplotlib
 ```
 for ubuntu16.04 with Python 3.5.2
 ```bash
-cd ChannelBreakoutBot
+cd manabukun-for-Bitmex
 apt-get install -y python3 python3-pip python3-tk libpng-dev libfreetype6-dev
 pip3 install -U pip setuptools
 pip3 install pybitflyer requests pandas pubnub tornado matplotlib
