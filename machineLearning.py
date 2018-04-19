@@ -4,12 +4,11 @@
 import json
 import logging
 import time
-import itertools
 from src import channel
 from hyperopt import fmin, tpe, hp
 
 def describe(params):
-    i, j, k, l, candleTerm, cost, mlMode, fileName = params
+    i, j, k, l, candleTerm, cost, fileName = params
 
     channelBreakOut = channel.ChannelBreakOut()
     channelBreakOut.entryTerm = i[0]
@@ -29,23 +28,11 @@ def describe(params):
     logging.info('rangeTerm:%s rangeTh:%s',channelBreakOut.rangeTerm,channelBreakOut.rangeTh)
     logging.info('waitTerm:%s waitTh:%s',channelBreakOut.waitTerm,channelBreakOut.waitTh)
     logging.info("===========Backtest===========")
-    pl, profitFactor, maxLoss, winPer = channelBreakOut.describeResult()
-
-    if "PFDD" in mlMode:
-        result = -(profitFactor ** 2 + maxLoss)
-    elif "PL" in mlMode:
-        result = -pl
-    elif "PF" in mlMode:
-        result = -profitFactor
-    elif "DD" in mlMode:
-        result = -maxLoss
-    elif "WIN" in mlMode:
-        result = -winPer
-
+    pl, profitFactor = channelBreakOut.describeResult()
     logging.info("===========Assessment===========")
-    return result
+    return -pl
 
-def optimization(candleTerm, cost, fileName, hyperopt, mlMode, showTradeDetail):
+def optimization(candleTerm, cost, fileName, hyperopt, showTradeDetail):
     #optimizeList.jsonの読み込み
     f = open('optimizeList.json', 'r', encoding="utf-8")
     config = json.load(f)
@@ -53,18 +40,11 @@ def optimization(candleTerm, cost, fileName, hyperopt, mlMode, showTradeDetail):
     rangeThAndrangeTerm = config["rangeThAndrangeTerm"]
     waitTermAndwaitTh = config["waitTermAndwaitTh"]
     rangePercentList = config["rangePercentList"]
-    linePattern = config["linePattern"]
-    randomUpper = config["randomUpper"]
-
-    if "R" in linePattern:
-        entryAndCloseTerm = list(itertools.product(range(2,randomUpper), range(2,randomUpper)))
-
     total = len(entryAndCloseTerm) * len(rangeThAndrangeTerm) * len(waitTermAndwaitTh) * len(rangePercentList)
 
     logging.info('Total pattern:%s Searches:%s',total,hyperopt)
     logging.info("======Optimization start======")
-    #hyperoptによる最適値の算出
-    space = [hp.choice('i',entryAndCloseTerm), hp.choice('j',rangeThAndrangeTerm), hp.choice('k',waitTermAndwaitTh), hp.choice('l',rangePercentList), candleTerm, cost, mlMode, fileName]
+    space = [hp.choice('i',entryAndCloseTerm), hp.choice('j',rangeThAndrangeTerm), hp.choice('k',waitTermAndwaitTh), hp.choice('l',rangePercentList), candleTerm, cost, fileName]
     result = fmin(describe,space,algo=tpe.suggest,max_evals=hyperopt)
 
     logging.info("======Optimization finished======")
@@ -87,32 +67,7 @@ def optimization(candleTerm, cost, fileName, hyperopt, mlMode, showTradeDetail):
     logging.info('rangeTerm:%s rangeTh:%s',channelBreakOut.rangeTerm,channelBreakOut.rangeTh)
     logging.info('waitTerm:%s waitTh:%s',channelBreakOut.waitTerm,channelBreakOut.waitTh)
     logging.info("======Backtest======")
-    channelBreakOut.describeResult()
-
-    #config.json設定用ログ
-    print("======config======")
-    print("    \"entryTerm\" : ", channelBreakOut.entryTerm, ",", sep="")
-    print("    \"closeTerm\" : ", channelBreakOut.closeTerm, ",", sep="")
-    if channelBreakOut.rangePercent is None:
-        print("    \"rangePercent\" : ", "null,", sep="")
-    else:
-        print("    \"rangePercent\" : ", channelBreakOut.rangePercent, ",", sep="")
-    if channelBreakOut.rangePercentTerm is None:
-        print("    \"rangePercentTerm\" : ", "null,", sep="")
-    else:
-        print("    \"rangePercentTerm\" : ", channelBreakOut.rangePercentTerm, ",", sep="")
-    if channelBreakOut.rangeTerm is None:
-        print("    \"rangeTerm\" : ", "null,", sep="")
-    else:
-        print("    \"rangeTerm\" : ", channelBreakOut.rangeTerm, ",", sep="")
-    if channelBreakOut.rangeTh is None:
-        print("    \"rangeTh\" : ", "null,", sep="")
-    else:
-        print("    \"rangeTh\" : ", channelBreakOut.rangeTh, ",", sep="")
-    print("    \"waitTerm\" : ", channelBreakOut.waitTerm, ",", sep="")
-    print("    \"waitTh\" : ", channelBreakOut.waitTh, ",", sep="")
-    print("    \"candleTerm\" : \"", channelBreakOut.candleTerm, "\",", sep="")
-    print("==================")
+    pl, profitFactor = channelBreakOut.describeResult()
 
 if __name__ == '__main__':
     #logging設定
@@ -134,9 +89,9 @@ if __name__ == '__main__':
     #config.jsonの読み込み
     f = open('config.json', 'r', encoding="utf-8")
     config = json.load(f)
-    logging.info('candleTerm:%s cost:%s mlMode:%s fileName:%s',config["candleTerm"],config["cost"],config["mlMode"],config["fileName"])
+    logging.info('candleTerm:%s cost:%s fileName:%s',config["candleTerm"],config["cost"],config["fileName"])
 
     #最適化
     start = time.time()
-    optimization(candleTerm=config["candleTerm"], cost=config["cost"], fileName=config["fileName"], hyperopt=config["hyperopt"], mlMode=config["mlMode"], showTradeDetail=config["showTradeDetail"])
+    optimization(candleTerm=config["candleTerm"], cost=config["cost"], fileName=config["fileName"], hyperopt=config["hyperopt"], showTradeDetail=config["showTradeDetail"])
     logging.info('total processing time: %s', time.time() - start)
