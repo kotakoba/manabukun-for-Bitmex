@@ -17,7 +17,9 @@
     "fileName" : "chart.csv",
     "showFigure" : true,
     "sendFigure" : false,
-    "core" : null,
     "showTradeDetail" : true,
-	"hyperopt" : 1000
+    "core" : null,
+    "hyperopt" : 1000,
+    "mlMode" : "PL",
+    "useBlackList" : true
 }
