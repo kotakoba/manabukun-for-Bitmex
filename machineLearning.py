@@ -4,7 +4,6 @@
 import json
 import logging
 import time
-import itertools
 from src import channel
 from hyperopt import fmin, tpe, hp
 
@@ -29,11 +28,8 @@ def describe(params):
     logging.info('rangeTerm:%s rangeTh:%s',channelBreakOut.rangeTerm,channelBreakOut.rangeTh)
     logging.info('waitTerm:%s waitTh:%s',channelBreakOut.waitTerm,channelBreakOut.waitTh)
     logging.info("===========Backtest===========")
-    pl, profitFactor, maxLoss, winPer, ev = channelBreakOut.describeResult()
-
-    if "PFDD" in mlMode:
-        result = -(profitFactor ** 2 + maxLoss)
-    elif "PL" in mlMode:
+    pl, profitFactor, maxLoss, winPer = channelBreakOut.describeResult()
+    if "PL" in mlMode:
         result = -pl
     elif "PF" in mlMode:
         result = -profitFactor
@@ -41,9 +37,7 @@ def describe(params):
         result = -maxLoss
     elif "WIN" in mlMode:
         result = -winPer
-    elif "EV" in mlMode:
-        result = -ev
-
+    
     logging.info("===========Assessment===========")
     return result
 
@@ -55,12 +49,6 @@ def optimization(candleTerm, cost, fileName, hyperopt, mlMode, showTradeDetail):
     rangeThAndrangeTerm = config["rangeThAndrangeTerm"]
     waitTermAndwaitTh = config["waitTermAndwaitTh"]
     rangePercentList = config["rangePercentList"]
-    linePattern = config["linePattern"]
-    termUpper = config["termUpper"]
-
-    if "COMB" in linePattern:
-        entryAndCloseTerm = list(itertools.product(range(2,termUpper), range(2,termUpper)))
-
     total = len(entryAndCloseTerm) * len(rangeThAndrangeTerm) * len(waitTermAndwaitTh) * len(rangePercentList)
 
     logging.info('Total pattern:%s Searches:%s',total,hyperopt)

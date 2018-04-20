@@ -668,7 +668,6 @@ class ChannelBreakOut:
                 if judgement[0]:
                     logging.info("Long entry order")
                     orderId = self.order.market(size=lot, side="buy")
-                    print(orderId)
                     pos += 1
                     #childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
                     best_ask = orderId['info']['price']
