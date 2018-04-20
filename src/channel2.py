@@ -28,7 +28,7 @@ class ChannelBreakOut:
         self.cryptowatch = cryptowatch.CryptoWatch()
         #pubnubから取得した約定履歴を保存するリスト（基本的に不要．）
         self._executions = deque(maxlen=300)
-        self._lot = 2000
+        self._lot = 0.01
         self._product_code = config["product_code"]
         #各パラメタ．
         self._entryTerm = 10
@@ -563,7 +563,7 @@ class ChannelBreakOut:
         """
         self.executionsProcess()
         #pubnubが回り始めるまで待つ．
-        time.sleep(2)
+        time.sleep(20)
         pos = 0
         pl = []
         pl.append(0)
@@ -573,8 +573,8 @@ class ChannelBreakOut:
         waitTerm = 0
 
         # 証拠金の状態を取得
-        #collateral = self.order.getcollateral()
-        #logging.info('collateral:%s', collateral["collateral"])
+        collateral = self.order.getcollateral()
+        logging.info('collateral:%s', collateral["collateral"])
 
         try:
             if "H" in self.candleTerm:
@@ -593,8 +593,8 @@ class ChannelBreakOut:
         closeLowLine, closeHighLine = self.calculateLines(df_candleStick, self.closeTerm, self.rangePercent, self.rangePercentTerm)
 
         #直近約定件数30件の高値と安値
-        high = max([self.executions[-1-i]["bidPrice"] for i in range(30)])
-        low = min([self.executions[-1-i]["bidPrice"] for i in range(30)])
+        high = max([self.executions[-1-i]["price"] for i in range(30)])
+        low = min([self.executions[-1-i]["price"] for i in range(30)])
 
         message = "Starting for channelbreak."
         logging.info(message)
@@ -603,7 +603,6 @@ class ChannelBreakOut:
         exeTimer1 = 0
         exeTimer5 = 0
         while True:
-            self.executionsProcess()
             logging.info('================================')
             exeMin = datetime.datetime.now().minute
             #1分ごとに基準ラインを更新
@@ -632,15 +631,15 @@ class ChannelBreakOut:
                 pass
 
             #直近約定件数30件の高値と安値
-            high = max([self.executions[-1-i]["bidPrice"] for i in range(30)])
-            low = min([self.executions[-1-i]["bidPrice"] for i in range(30)])
+            high = max([self.executions[-1-i]["price"] for i in range(30)])
+            low = min([self.executions[-1-i]["price"] for i in range(30)])
             #売り買い判定
             judgement = self.judgeForLoop(high, low, entryHighLine, entryLowLine, closeHighLine, closeLowLine)
 
             #取引所のヘルスチェック
-            #boardState = self.order.getboardstate()
+            boardState = self.order.getboardstate()
             serverHealth = True
-            """permitHealth1 = ["NORMAL", "BUSY", "VERY BUSY"]
+            permitHealth1 = ["NORMAL", "BUSY", "VERY BUSY"]
             permitHealth2 = ["NORMAL", "BUSY", "VERY BUSY", "SUPER BUSY"]
             if (boardState["health"] in permitHealth1) and boardState["state"] == "RUNNING" and self.healthCheck:
                 pass
@@ -649,12 +648,12 @@ class ChannelBreakOut:
             else:
                 serverHealth = False
                 logging.info('Server is %s/%s. Do not order.', boardState["health"], boardState["state"])
-			"""
+
             #ログ出力
             logging.info('high:%s low:%s isRange:%s', high, low, isRange[-1])
             logging.info('entryHighLine:%s entryLowLine:%s', entryHighLine[-1], entryLowLine[-1])
             logging.info('closeLowLine:%s closeHighLine:%s', closeLowLine[-1], closeHighLine[-1])
-            #logging.info('Server Health is:%s State is:%s', boardState["health"], boardState["state"])
+            logging.info('Server Health is:%s State is:%s', boardState["health"], boardState["state"])
             if pos == 1:
                 logging.info('position : Long(Price:%s)',lastPositionPrice)
             elif pos == -1:
@@ -667,26 +666,22 @@ class ChannelBreakOut:
                 #ロングエントリー
                 if judgement[0]:
                     logging.info("Long entry order")
-                    orderId = self.order.market(size=lot, side="buy")
-                    print(orderId)
+                    orderId = self.order.market(size=lot, side="BUY")
                     pos += 1
-                    #childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
-                    best_ask = orderId['info']['price']
-                    order_lot = orderId['info']['simpleCumQty']
-                    message = "Long entry. Lot:{}, Price:{}".format(order_lot, best_ask)
+                    childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
+                    best_ask = childOrder[0]["price"]
+                    message = "Long entry. Lot:{}, Price:{}".format(lot, best_ask)
                     self.lineNotify(message)
                     logging.info(message)
                     lastPositionPrice = best_ask
                 #ショートエントリー
                 elif judgement[1]:
                     logging.info("Short entry order")
-                    orderId = self.order.market(size=lot,side="sell")
-                    print(orderId)
+                    orderId = self.order.market(size=lot,side="SELL")
                     pos -= 1
-                    #childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
-                    best_bid = orderId['info']['price']
-                    order_lot = orderId['info']['simpleCumQty']
-                    message = "Short entry. Lot:{}, Price:{}, ".format(order_lot, best_bid)
+                    childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
+                    best_bid = childOrder[0]["price"]
+                    message = "Short entry. Lot:{}, Price:{}, ".format(lot, best_bid)
                     self.lineNotify(message)
                     logging.info(message)
                     lastPositionPrice = best_bid
@@ -695,14 +690,13 @@ class ChannelBreakOut:
                 #ロングクローズ
                 if judgement[2]:
                     logging.info("Long close order")
-                    orderId = self.order.market(size=lot,side="sell")
+                    orderId = self.order.market(size=lot,side="SELL")
                     pos -= 1
-                    #childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
-                    best_bid = orderId['info']['price']
-                    order_lot = orderId['info']['simpleCumQty']
+                    childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
+                    best_bid = childOrder[0]["price"]
                     plRange = best_bid - lastPositionPrice
-                    pl.append(pl[-1] + plRange * order_lot)
-                    message = "Long close. Lot:{}, Price:{}, pl:{}".format(order_lot, best_bid, pl[-1])
+                    pl.append(pl[-1] + plRange * lot)
+                    message = "Long close. Lot:{}, Price:{}, pl:{}".format(lot, best_bid, pl[-1])
                     fileName = self.describePLForNotification(pl, df_candleStick)
                     self.lineNotify(message,fileName)
                     logging.info(message)
@@ -721,14 +715,13 @@ class ChannelBreakOut:
                 #ショートクローズ
                 if judgement[3]:
                     logging.info("Short close order")
-                    orderId = self.order.market(size=lot, side="buy")
+                    orderId = self.order.market(size=lot, side="BUY")
                     pos += 1
-                    #childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
-                    best_ask = orderId['info']['price']
-                    order_lot = orderId['info']['simpleCumQty']
+                    childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
+                    best_ask = childOrder[0]["price"]
                     plRange = lastPositionPrice - best_ask
-                    pl.append(pl[-1] + plRange * order_lot)
-                    message = "Short close. Lot:{}, Price:{}, pl:{}".format(order_lot, best_ask, pl[-1])
+                    pl.append(pl[-1] + plRange * lot)
+                    message = "Short close. Lot:{}, Price:{}, pl:{}".format(lot, best_ask, pl[-1])
                     fileName = self.describePLForNotification(pl, df_candleStick)
                     self.lineNotify(message,fileName)
                     logging.info(message)
@@ -748,24 +741,22 @@ class ChannelBreakOut:
                 #ロングエントリー
                 if judgement[0]:
                     logging.info("Long doten entry order")
-                    orderId = self.order.market(size=lot, side="buy")
+                    orderId = self.order.market(size=lot, side="BUY")
                     pos += 1
-                    #childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
-                    best_ask = orderId['info']['price']
-                    order_lot = orderId['info']['simpleCumQty']
-                    message = "Long entry. Lot:{}, Price:{}".format(order_lot, best_ask)
+                    childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
+                    best_ask = childOrder[0]["price"]
+                    message = "Long entry. Lot:{}, Price:{}".format(lot, best_ask)
                     self.lineNotify(message)
                     logging.info(message)
                     lastPositionPrice = best_ask
                 #ショートエントリー
                 elif judgement[1]:
                     logging.info("Short doten entry order")
-                    orderId = self.order.market(size=lot,side="sell")
+                    orderId = self.order.market(size=lot,side="SELL")
                     pos -= 1
-                    #childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
-                    best_bid = orderId['info']['price']
-                    order_lot = orderId['info']['simpleCumQty']
-                    message = "Short entry. Lot:{}, Price:{}, ".format(order_lot, best_bid)
+                    childOrder = self.order.getexecutions(orderId["child_order_acceptance_id"])
+                    best_bid = childOrder[0]["price"]
+                    message = "Short entry. Lot:{}, Price:{}, ".format(lot, best_bid)
                     self.lineNotify(message)
                     logging.info(message)
                     lastPositionPrice = best_bid
@@ -775,13 +766,13 @@ class ChannelBreakOut:
                 message = "Waiting for channelbreaking."
                 logging.info(message)
 
-            time.sleep(6)
+            time.sleep(2)
 
     def executionsProcess(self):
         """
         pubnubで価格を取得する場合の処理（基本的に不要．）
         """
-        """channels = ["lightning_executions_FX_BTC_JPY"]
+        channels = ["lightning_executions_FX_BTC_JPY"]
         executions = self.executions
         class BFSubscriberCallback(SubscribeCallback):
             def message(self, pubnub, message):
@@ -799,6 +790,4 @@ class ChannelBreakOut:
         pubnub.add_listener(listener)
         pubnub.subscribe().channels(channels).execute()
         pubnubThread = threading.Thread(target=pubnub.start)
-        pubnubThread.start()"""
-        r = requests.get('https://www.bitmex.com/api/v1/quote/bucketed?binSize=1m&partial=true&symbol=XBT&count=30&reverse=true')
-        self.executions = r.json()
+        pubnubThread.start()
