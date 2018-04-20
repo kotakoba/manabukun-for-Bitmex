@@ -36,7 +36,7 @@ class CryptoWatch:
         query = {"periods": ','.join(periods), "after": 1}
         # ローソク足取得
         try:
-            res = json.loads(requests.get("https://api.cryptowat.ch/markets/bitflyer/btcfxjpy/ohlc", params=query).text)
+            res = json.loads(requests.get("https://api.cryptowat.ch/markets/bitmex/btcusd-perpetual-futures/ohlc", params=query).text)
             res = res["result"]
         except:
             logging.error(res)
